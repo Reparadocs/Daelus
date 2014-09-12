@@ -16,8 +16,7 @@ namespace Daelus
     {
         GraphicsDeviceManager graphics;
         SpriteBatch SpriteBatch;
-        PhysicsService PhysicsService;
-        Camera Camera;
+        MercadoEngine Mercado;
 
         Texture2D groundT;
         Texture2D playerT;
@@ -36,6 +35,8 @@ namespace Daelus
 
         protected override void Initialize()
         {
+            Mercado = new MercadoEngine();
+
             ServiceProvider.Initialize(Services);
             base.Initialize();
         }
@@ -43,18 +44,23 @@ namespace Daelus
         protected override void LoadContent()
         {
             SpriteBatch = new SpriteBatch(GraphicsDevice);
-            PhysicsService = new PhysicsService();
-            Camera = new Camera(Vector2.Zero, new Vector2(graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight));
-            RegisterServices();
+            Mercado.RegisterServices(SpriteBatch, new Vector2(graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight));
+    
             groundT = Content.Load<Texture2D>("grassMid.png");
             playerT = Content.Load<Texture2D>("boxCoin.png");
             ground = new List<PhysicsGameObject>();
             for(int i = 0; i < 10; i++)
             {
-                ground.Add(new PhysicsGameObject(this, groundT, new Vector2(i*64,500)));
+                ground.Add(new PhysicsGameObject(this, groundT, new Vector2(i*64,500), true));
+                ground.Add(new PhysicsGameObject(this, groundT, new Vector2(640 + i * 64, 564), true));
             }
-            player = new PhysicsGameObject(this, playerT, Vector2.Zero, 7.0f);
+            ground.Add(new PhysicsGameObject(this, groundT, new Vector2(384, 436), true));
+            ground.Add(new PhysicsGameObject(this, groundT, new Vector2(256, 436), true));
+            ground.Add(new PhysicsGameObject(this, groundT, new Vector2(384, 372), true));
+            ground.Add(new PhysicsGameObject(this, groundT, new Vector2(128, 300), true));
 
+            player = new PhysicsGameObject(this, playerT, Vector2.Zero, 7.0f);
+            SetInput();
             RegisterComponents();
         }
 
@@ -67,6 +73,7 @@ namespace Daelus
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            Mercado.Update();
             base.Update(gameTime);
         }
 
@@ -78,20 +85,24 @@ namespace Daelus
             SpriteBatch.End();
         }
 
-        private void RegisterServices()
-        {
-            ServiceProvider.AddService<SpriteBatch>(SpriteBatch);
-            ServiceProvider.AddService<PhysicsService>(PhysicsService);
-            ServiceProvider.AddService<Camera>(Camera);
-        }
-
         private void RegisterComponents()
         {
+            Components.Add(player);
             foreach(PhysicsGameObject g in ground)
             {
                 Components.Add(g);
             }
-            Components.Add(player);
+
+        }
+
+        private void SetInput()
+        {
+            InputManager.gameObject = player;
+            InputManager.keyCommands.Add(Keys.D, new MoveCommand(new Vector2(3, 0)));
+            InputManager.keyCommands.Add(Keys.A, new MoveCommand(new Vector2(-3, 0)));
+            InputManager.keyCommands.Add(Keys.Space, new JumpCommand(-300.0f));
+            InputManager.buttonCommands.Add(Buttons.A, new JumpCommand(-300.0f));
+            InputManager.leftStick = new MoveCommand(new Vector2(3, 0));
         }
     }
 }
